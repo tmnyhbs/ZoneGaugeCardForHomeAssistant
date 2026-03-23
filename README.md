@@ -1,21 +1,24 @@
-# Zone Gauge Card For Home Assistant
+# Zone Gauge Card
 
 A custom gauge card for [Home Assistant](https://www.home-assistant.io/) with five color zones and a full visual editor. The entire gauge changes color based on the current value — no segmented arcs, just one clean color at a time.
 
 ## Zones
 
-| Zone | Color | Condition |
-|------|-------|-----------|
+| Zone | Default Color | Condition |
+|------|---------------|-----------|
 | Cold | 🔴 Red | Below cold threshold |
 | Cool | 🟡 Yellow | Between cold and cool thresholds |
 | Comfort | 🟢 Green | Between cool and warm thresholds |
 | Warm | 🟡 Yellow | Between warm and hot thresholds |
 | Hot | 🔴 Red | Above hot threshold |
 
+All three colors (outer, caution, comfort) are customizable from the visual editor.
+
 ## Features
 
 - **Visual editor** — configure everything from the UI, no YAML needed
-- **Five-zone color logic** — red → yellow → green → yellow → red
+- **Custom colors** — pick your own colors for each zone with color pickers
+- **Five-zone color logic** — outer → caution → comfort → caution → outer
 - **Entity picker** with autocomplete (filtered to sensors, custom entries allowed)
 - **Needle gauge** with smooth arc fill
 - **Tap action** opens the entity's more-info dialog (history, attributes, etc.)
@@ -63,7 +66,10 @@ All options are available in the visual editor. If you prefer YAML:
 | `cold_threshold` | number | `55` | Below this → red |
 | `cool_threshold` | number | `62` | Below this → yellow, above → green |
 | `warm_threshold` | number | `78` | Above this → yellow |
-| `hot_threshold` | number | `85` | Above this → red |
+| `hot_threshold` | number | `85` | Above this → outer color |
+| `color_low` | string | `#E24B4A` | Outer zone color (cold/hot extremes) |
+| `color_mid` | string | `#EF9F27` | Caution zone color (cool/warm) |
+| `color_high` | string | `#5DCAA5` | Comfort zone color |
 
 ### Example YAML
 
@@ -77,6 +83,9 @@ cold_threshold: 55
 cool_threshold: 62
 warm_threshold: 78
 hot_threshold: 85
+color_low: "#E24B4A"
+color_mid: "#EF9F27"
+color_high: "#5DCAA5"
 ```
 
 ## Use cases

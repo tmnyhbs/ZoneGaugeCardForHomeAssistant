@@ -1,7 +1,7 @@
 /**
  * Zone Gauge Card for Home Assistant
- * A gauge card with five color zones: red (cold) → yellow (cool) → green (comfort) → yellow (warm) → red (hot)
- * Includes a full visual editor — no YAML editing needed after install.
+ * A gauge card with five color zones and a full visual editor.
+ * Colors, thresholds, and entity are all configurable from the UI.
  *
  * Installation:
  *   1. Copy this file to /config/www/zone-gauge-card.js
@@ -10,23 +10,28 @@
  *   4. Add the card via the UI — search "Zone Gauge" in the card picker
  */
 
+const DEFAULTS = {
+  entity: '',
+  name: '',
+  unit: '',
+  min: 0,
+  max: 120,
+  cold_threshold: 55,
+  cool_threshold: 62,
+  warm_threshold: 78,
+  hot_threshold: 85,
+  color_low: '#E24B4A',
+  color_mid: '#EF9F27',
+  color_high: '#5DCAA5',
+};
+
 class ZoneGaugeCard extends HTMLElement {
   static getConfigElement() {
     return document.createElement('zone-gauge-card-editor');
   }
 
   static getStubConfig() {
-    return {
-      entity: '',
-      name: '',
-      unit: '',
-      min: 0,
-      max: 120,
-      cold_threshold: 55,
-      cool_threshold: 62,
-      warm_threshold: 78,
-      hot_threshold: 85,
-    };
+    return { ...DEFAULTS };
   }
 
   constructor() {
@@ -43,17 +48,7 @@ class ZoneGaugeCard extends HTMLElement {
 
   setConfig(config) {
     if (!config.entity) throw new Error('Please select an entity');
-    this._config = {
-      name: '',
-      unit: '',
-      min: 0,
-      max: 120,
-      cold_threshold: 55,
-      cool_threshold: 62,
-      warm_threshold: 78,
-      hot_threshold: 85,
-      ...config,
-    };
+    this._config = { ...DEFAULTS, ...config };
     this._render();
   }
 
@@ -63,11 +58,11 @@ class ZoneGaugeCard extends HTMLElement {
 
   _getColor(val) {
     const c = this._config;
-    if (val < c.cold_threshold) return '#E24B4A';
-    if (val < c.cool_threshold) return '#EF9F27';
-    if (val <= c.warm_threshold) return '#5DCAA5';
-    if (val <= c.hot_threshold) return '#EF9F27';
-    return '#E24B4A';
+    if (val < c.cold_threshold) return c.color_low;
+    if (val < c.cool_threshold) return c.color_mid;
+    if (val <= c.warm_threshold) return c.color_high;
+    if (val <= c.hot_threshold) return c.color_mid;
+    return c.color_low;
   }
 
   _render() {
@@ -130,7 +125,7 @@ class ZoneGaugeCard extends HTMLElement {
         .fill { transition: stroke 0.4s ease; }
         .val { transition: fill 0.4s ease; }
       </style>
-      <ha-card @click="${this._handleClick}">
+      <ha-card>
         <svg viewBox="0 0 300 195">
           <path class="track" d="${arc(sA, 2 * Math.PI)}" fill="none"
             stroke="var(--primary-text-color)" stroke-opacity="0.1"
@@ -177,18 +172,7 @@ class ZoneGaugeCardEditor extends HTMLElement {
   }
 
   setConfig(config) {
-    this._config = {
-      entity: '',
-      name: '',
-      unit: '',
-      min: 0,
-      max: 120,
-      cold_threshold: 55,
-      cool_threshold: 62,
-      warm_threshold: 78,
-      hot_threshold: 85,
-      ...config,
-    };
+    this._config = { ...DEFAULTS, ...config };
     this._render();
   }
 
@@ -205,11 +189,6 @@ class ZoneGaugeCardEditor extends HTMLElement {
           font-size: 13px;
           margin-bottom: 4px;
           color: var(--primary-text-color);
-        }
-        .row .hint {
-          font-size: 12px;
-          color: var(--secondary-text-color);
-          margin-top: 2px;
         }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         input[type="text"], input[type="number"] {
@@ -240,12 +219,6 @@ class ZoneGaugeCardEditor extends HTMLElement {
           gap: 8px;
           margin-bottom: 12px;
         }
-        .zone-dot {
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
         .zone-label {
           flex: 1;
           font-size: 13px;
@@ -254,26 +227,56 @@ class ZoneGaugeCardEditor extends HTMLElement {
         .zone-input {
           width: 80px;
         }
+        .color-swatch {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid var(--divider-color, #e0e0e0);
+          padding: 0;
+          cursor: pointer;
+          overflow: hidden;
+          flex-shrink: 0;
+          position: relative;
+        }
+        .color-swatch input[type="color"] {
+          position: absolute;
+          top: -4px;
+          left: -4px;
+          width: calc(100% + 8px);
+          height: calc(100% + 8px);
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          background: none;
+        }
+        .color-swatch input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-swatch input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+        .color-swatch input[type="color"]::-moz-color-swatch { border: none; border-radius: 6px; }
+        .spacer-swatch {
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+        }
+        .hint {
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          white-space: nowrap;
+        }
       </style>
 
       <div class="row">
         <label>Entity</label>
-        <ha-entity-picker
-          .hass=${this._hass}
-          .value="${c.entity}"
-          .includeDomains=${['sensor']}
-          allow-custom-entity
-        ></ha-entity-picker>
+        <ha-entity-picker allow-custom-entity></ha-entity-picker>
       </div>
 
       <div class="grid">
         <div class="row">
           <label>Name (optional)</label>
-          <input type="text" id="name" value="${c.name}" placeholder="Auto from entity" />
+          <input type="text" id="name" value="${this._esc(c.name)}" placeholder="Auto from entity" />
         </div>
         <div class="row">
           <label>Unit (optional)</label>
-          <input type="text" id="unit" value="${c.unit}" placeholder="Auto from entity" />
+          <input type="text" id="unit" value="${this._esc(c.unit)}" placeholder="Auto from entity" />
         </div>
       </div>
 
@@ -290,29 +293,44 @@ class ZoneGaugeCardEditor extends HTMLElement {
       </div>
 
       <div class="section-title">Color zones</div>
+
       <div class="zone-row">
-        <span class="zone-dot" style="background:#E24B4A;"></span>
-        <span class="zone-label">Red below (cold)</span>
+        <div class="color-swatch">
+          <input type="color" id="color_low" value="${c.color_low}" title="Outer zone color" />
+        </div>
+        <span class="zone-label">Outer zone</span>
+        <span class="hint">below</span>
         <input type="number" id="cold_threshold" class="zone-input" value="${c.cold_threshold}" />
       </div>
+
       <div class="zone-row">
-        <span class="zone-dot" style="background:#EF9F27;"></span>
-        <span class="zone-label">Yellow below (cool)</span>
+        <div class="color-swatch">
+          <input type="color" id="color_mid" value="${c.color_mid}" title="Caution zone color" />
+        </div>
+        <span class="zone-label">Caution zone</span>
+        <span class="hint">below</span>
         <input type="number" id="cool_threshold" class="zone-input" value="${c.cool_threshold}" />
       </div>
+
       <div class="zone-row">
-        <span class="zone-dot" style="background:#5DCAA5;"></span>
-        <span class="zone-label">Green zone</span>
-        <span class="hint" style="flex:1;text-align:right;">Between cool and warm</span>
+        <div class="color-swatch">
+          <input type="color" id="color_high" value="${c.color_high}" title="Comfort zone color" />
+        </div>
+        <span class="zone-label">Comfort zone</span>
+        <span class="hint" style="text-align:right;flex-shrink:0;">between cool &amp; warm</span>
       </div>
+
       <div class="zone-row">
-        <span class="zone-dot" style="background:#EF9F27;"></span>
-        <span class="zone-label">Yellow above (warm)</span>
+        <div class="spacer-swatch"></div>
+        <span class="zone-label" style="color:var(--secondary-text-color);">Caution zone</span>
+        <span class="hint">above</span>
         <input type="number" id="warm_threshold" class="zone-input" value="${c.warm_threshold}" />
       </div>
+
       <div class="zone-row">
-        <span class="zone-dot" style="background:#E24B4A;"></span>
-        <span class="zone-label">Red above (hot)</span>
+        <div class="spacer-swatch"></div>
+        <span class="zone-label" style="color:var(--secondary-text-color);">Outer zone</span>
+        <span class="hint">above</span>
         <input type="number" id="hot_threshold" class="zone-input" value="${c.hot_threshold}" />
       </div>
     `;
@@ -333,11 +351,24 @@ class ZoneGaugeCardEditor extends HTMLElement {
     ['name', 'unit', 'min', 'max', 'cold_threshold', 'cool_threshold', 'warm_threshold', 'hot_threshold'].forEach((key) => {
       const el = this.shadowRoot.getElementById(key);
       if (!el) return;
-      el.addEventListener('change', (e) => {
+      el.addEventListener('change', () => {
         const val = el.type === 'number' ? parseFloat(el.value) : el.value;
         this._updateConfig(key, val);
       });
     });
+
+    // Wire up color pickers — use 'input' for live preview
+    ['color_low', 'color_mid', 'color_high'].forEach((key) => {
+      const el = this.shadowRoot.getElementById(key);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        this._updateConfig(key, el.value);
+      });
+    });
+  }
+
+  _esc(str) {
+    return (str || '').replace(/"/g, '&quot;');
   }
 
   _updateConfig(key, value) {
@@ -358,7 +389,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'zone-gauge-card',
   name: 'Zone Gauge',
-  description: 'A gauge with five color zones: red → yellow → green → yellow → red',
+  description: 'A gauge with five configurable color zones and a visual editor',
   preview: true,
   documentationURL: '',
 });
