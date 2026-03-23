@@ -1,4 +1,4 @@
-# Zone Gauge Card
+# Zone Gauge Card For Home Assistant
 
 A custom gauge card for [Home Assistant](https://www.home-assistant.io/) with five color zones and a full visual editor. The entire gauge changes color based on the current value — no segmented arcs, just one clean color at a time.
 
