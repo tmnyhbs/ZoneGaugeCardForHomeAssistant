@@ -167,13 +167,26 @@ class ZoneGaugeCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    const picker = this.shadowRoot && this.shadowRoot.querySelector('ha-entity-picker');
+    if (!this.shadowRoot) return;
+    const picker = this.shadowRoot.querySelector('ha-entity-picker');
     if (picker) picker.hass = hass;
   }
 
   setConfig(config) {
     this._config = { ...DEFAULTS, ...config };
     this._render();
+  }
+
+  _buildColorField(id, label, value) {
+    return `
+      <div class="color-field">
+        <div class="color-dot" id="${id}_dot" data-key="${id}" style="background:${value};"></div>
+        <input type="color" id="${id}_picker" value="${value}" style="position:absolute;width:0;height:0;opacity:0;pointer-events:none;" />
+        <div style="flex:1;min-width:0;">
+          <div class="color-field-label">${label}</div>
+          <input type="text" id="${id}" value="${value}" class="color-hex" placeholder="#000000" />
+        </div>
+      </div>`;
   }
 
   _render() {
@@ -224,43 +237,47 @@ class ZoneGaugeCardEditor extends HTMLElement {
           font-size: 13px;
           color: var(--primary-text-color);
         }
-        .zone-input {
-          width: 80px;
-        }
-        .color-swatch {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: 1px solid var(--divider-color, #e0e0e0);
-          padding: 0;
-          cursor: pointer;
-          overflow: hidden;
-          flex-shrink: 0;
-          position: relative;
-        }
-        .color-swatch input[type="color"] {
-          position: absolute;
-          top: -4px;
-          left: -4px;
-          width: calc(100% + 8px);
-          height: calc(100% + 8px);
-          border: none;
-          padding: 0;
-          cursor: pointer;
-          background: none;
-        }
-        .color-swatch input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-        .color-swatch input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
-        .color-swatch input[type="color"]::-moz-color-swatch { border: none; border-radius: 6px; }
-        .spacer-swatch {
-          width: 32px;
-          height: 32px;
-          flex-shrink: 0;
-        }
+        .zone-input { width: 80px; }
         .hint {
           font-size: 12px;
           color: var(--secondary-text-color);
           white-space: nowrap;
+        }
+        .color-fields {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+        .color-field {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          position: relative;
+        }
+        .color-field-label {
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          margin-bottom: 2px;
+        }
+        .color-dot {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 2px solid var(--divider-color, #e0e0e0);
+          cursor: pointer;
+          flex-shrink: 0;
+          transition: border-color 0.2s, transform 0.15s;
+        }
+        .color-dot:hover {
+          border-color: var(--primary-color);
+          transform: scale(1.1);
+        }
+        .color-hex {
+          font-family: monospace;
+          font-size: 13px !important;
+          padding: 4px 8px !important;
+          width: 100% !important;
         }
       </style>
 
@@ -292,45 +309,38 @@ class ZoneGaugeCardEditor extends HTMLElement {
         </div>
       </div>
 
-      <div class="section-title">Color zones</div>
+      <div class="section-title">Zone colors</div>
+      <div class="color-fields">
+        ${this._buildColorField('color_low', 'Outer', c.color_low)}
+        ${this._buildColorField('color_mid', 'Caution', c.color_mid)}
+        ${this._buildColorField('color_high', 'Comfort', c.color_high)}
+      </div>
+
+      <div class="section-title">Zone thresholds</div>
 
       <div class="zone-row">
-        <div class="color-swatch">
-          <input type="color" id="color_low" value="${c.color_low}" title="Outer zone color" />
-        </div>
-        <span class="zone-label">Outer zone</span>
-        <span class="hint">below</span>
+        <span class="color-dot" style="width:12px;height:12px;border:none;cursor:default;background:${c.color_low};"></span>
+        <span class="zone-label">Outer below (cold)</span>
         <input type="number" id="cold_threshold" class="zone-input" value="${c.cold_threshold}" />
       </div>
-
       <div class="zone-row">
-        <div class="color-swatch">
-          <input type="color" id="color_mid" value="${c.color_mid}" title="Caution zone color" />
-        </div>
-        <span class="zone-label">Caution zone</span>
-        <span class="hint">below</span>
+        <span class="color-dot" style="width:12px;height:12px;border:none;cursor:default;background:${c.color_mid};"></span>
+        <span class="zone-label">Caution below (cool)</span>
         <input type="number" id="cool_threshold" class="zone-input" value="${c.cool_threshold}" />
       </div>
-
       <div class="zone-row">
-        <div class="color-swatch">
-          <input type="color" id="color_high" value="${c.color_high}" title="Comfort zone color" />
-        </div>
+        <span class="color-dot" style="width:12px;height:12px;border:none;cursor:default;background:${c.color_high};"></span>
         <span class="zone-label">Comfort zone</span>
-        <span class="hint" style="text-align:right;flex-shrink:0;">between cool &amp; warm</span>
+        <span class="hint">between cool &amp; warm</span>
       </div>
-
       <div class="zone-row">
-        <div class="spacer-swatch"></div>
-        <span class="zone-label" style="color:var(--secondary-text-color);">Caution zone</span>
-        <span class="hint">above</span>
+        <span class="color-dot" style="width:12px;height:12px;border:none;cursor:default;background:${c.color_mid};"></span>
+        <span class="zone-label">Caution above (warm)</span>
         <input type="number" id="warm_threshold" class="zone-input" value="${c.warm_threshold}" />
       </div>
-
       <div class="zone-row">
-        <div class="spacer-swatch"></div>
-        <span class="zone-label" style="color:var(--secondary-text-color);">Outer zone</span>
-        <span class="hint">above</span>
+        <span class="color-dot" style="width:12px;height:12px;border:none;cursor:default;background:${c.color_low};"></span>
+        <span class="zone-label">Outer above (hot)</span>
         <input type="number" id="hot_threshold" class="zone-input" value="${c.hot_threshold}" />
       </div>
     `;
@@ -357,12 +367,31 @@ class ZoneGaugeCardEditor extends HTMLElement {
       });
     });
 
-    // Wire up color pickers — use 'input' for live preview
+    // Wire up color dots → open hidden color picker, and sync all three inputs
     ['color_low', 'color_mid', 'color_high'].forEach((key) => {
-      const el = this.shadowRoot.getElementById(key);
-      if (!el) return;
-      el.addEventListener('input', () => {
-        this._updateConfig(key, el.value);
+      const dot = this.shadowRoot.getElementById(key + '_dot');
+      const picker = this.shadowRoot.getElementById(key + '_picker');
+      const hex = this.shadowRoot.getElementById(key);
+      if (!dot || !picker || !hex) return;
+
+      // Click dot → open native color picker
+      dot.addEventListener('click', () => picker.click());
+
+      // Native picker changes → update hex input, dot, and config
+      picker.addEventListener('input', () => {
+        hex.value = picker.value;
+        dot.style.background = picker.value;
+        this._updateConfig(key, picker.value);
+      });
+
+      // Manual hex input → update dot, picker, and config
+      hex.addEventListener('change', () => {
+        const v = hex.value.trim();
+        if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+          dot.style.background = v;
+          picker.value = v;
+          this._updateConfig(key, v);
+        }
       });
     });
   }
